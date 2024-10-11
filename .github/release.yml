@@ -1,18 +1,22 @@
 # .github/release.yml
 
 changelog:
-  exclude:
-    authors:
-      - dependabot[bot]
-      - pre-commit-ci[bot]
   categories:
     - title: Major Changes
       labels:
         - enhancement
+        - major
     - title: Minor Changes
       labels:
-        - "!bug"
-        - "!enhancement"
+        - minor
+        - refactor
+        - documentation
     - title: Bugfixes
       labels:
         - bug
+    - title: Dependency Updates
+      labels:
+        - dependencies
+    - title: Other
+      labels:
+        - "*"
