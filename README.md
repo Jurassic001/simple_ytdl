@@ -1,15 +1,24 @@
 # simple_ytdl
-[![Code style](https://img.shields.io/badge/code_style-black-black?style=for-the-badge)](https://github.com/psf/black)
-[![Commit activity](https://img.shields.io/github/commit-activity/t/Jurassic001/simple_ytdl?style=for-the-badge&logo=github)](https://github.com/Jurassic001/simple_ytdl/activity)
+[![Code style](https://img.shields.io/badge/code_style-black-black?style=flat-square)](https://github.com/psf/black)
+[![Commit activity](https://img.shields.io/github/commit-activity/t/Jurassic001/simple_ytdl?style=flat-square)](https://github.com/Jurassic001/simple_ytdl/activity)
+[![GitHub Release](https://img.shields.io/github/v/release/Jurassic001/simple_ytdl?style=flat-square)](https://github.com/Jurassic001/simple_ytdl/releases/latest)
+[![GitHub License](https://img.shields.io/github/license/Jurassic001/simple_ytdl?style=flat-square)](LICENSE)
 
 ### An easy-to-use, text-based program for downloading Youtube videos at high fidelity, utilizing [yt-dlp](https://github.com/yt-dlp/yt-dlp) and [FFmpeg](https://www.ffmpeg.org).
 
 ## How to use
 ### Requirements
-This program is compiled on a Windows 10/11 system, so I can only guarantee that it will work on Windows 10/11. If you are using a different operating system, feel free to give it a test run and let me know if it works.
+#### `Windows & MacOS`
+None! The executable file contains all the necessary dependencies to run the program.
+
+#### `Linux`
+You need to have `xclip` installed on your system. You can install it using the following command:
+```bash
+sudo apt-get install xclip
+```
 
 ### Installation
-Download the latest executable (.exe) file in [releases](https://github.com/Jurassic001/simple_ytdl/releases). <br/>
+Download the executable (.exe) file for your operating system in [releases](https://github.com/Jurassic001/simple_ytdl/releases/latest). <br/>
 That's it! You can now run the program and easily download videos at high quality!
 
 ### Program Usage
@@ -41,4 +50,4 @@ I wanted to extend this simplicity to other users, so I redesigned this program 
 This program is not affiliated with Youtube, yt-dlp, or FFmpeg. It is an independent project that utilizes these tools to download media. The program is not intended for illegal use, and I am not responsible for any misuse of this program.
 
 ### License
-You may view the repository's license [here](LICENSE).
+This program is licensed under the MIT License. You may view the repository's license [here](LICENSE).
