@@ -1,9 +1,11 @@
+# .github/dependabot.yml
+
 version: 2
 updates:
   - package-ecosystem: "pip"
     directory: "/"
     schedule:
-      interval: "monthly"
+      interval: "weekly"
     groups:
       default:
         patterns:

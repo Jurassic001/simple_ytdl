@@ -20,5 +20,5 @@ build/
 # unused executables dir
 bin/
 
-# github workflows will fail because Youtube flags the IP address as a bot
-.github/workflows/
+# testing workflows will fail because Youtube flags the IP address as a bot
+.github/workflows/test-*.yml

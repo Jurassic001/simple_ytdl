@@ -1,0 +1,22 @@
+# .github/release.yml
+
+changelog:
+  categories:
+    - title: Major Changes
+      labels:
+        - enhancement
+        - major
+    - title: Minor Changes
+      labels:
+        - minor
+        - refactor
+        - documentation
+    - title: Bugfixes
+      labels:
+        - bug
+    - title: Dependency Updates
+      labels:
+        - dependencies
+    - title: Other
+      labels:
+        - "*"

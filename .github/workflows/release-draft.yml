@@ -1,0 +1,118 @@
+name: Build and Release (Windows, Ubuntu, macOS)
+# Build and release the simple_ytdl executable on Windows, Ubuntu, and macOS when a tag is pushed
+
+on:
+  push:
+    tags:
+      - v*
+
+jobs:
+  # region Build Win exe
+  build-windows:
+    runs-on: windows-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: "3.11"
+
+    - name: Install Python Packages
+      run: python scripts/install_reqs.py
+
+    - name: Build simple_ytdl.exe
+      run: python scripts/build.py -cs
+
+    - name: Upload executable
+      uses: actions/upload-artifact@v4
+      with:
+        name: simple_ytdl_windows
+        path: ./pyinstaller/dist/simple_ytdl_win32.exe
+
+  # region Build Linux exe
+  build-linux:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: "3.11"
+
+    - name: Install Python Packages
+      run: python scripts/install_reqs.py
+
+    - name: Build simple_ytdl
+      run: python scripts/build.py -cs
+
+    - name: Upload executable
+      uses: actions/upload-artifact@v4
+      with:
+        name: simple_ytdl_linux
+        path: ./pyinstaller/dist/simple_ytdl_linux
+
+  # region Build MacOS exe
+  build-macos:
+    runs-on: macos-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: "3.11"
+
+    - name: Install Python Packages
+      run: python scripts/install_reqs.py
+
+    - name: Build simple_ytdl
+      run: python scripts/build.py -cs
+
+    - name: Upload executable
+      uses: actions/upload-artifact@v4
+      with:
+        name: simple_ytdl_macos
+        path: ./pyinstaller/dist/simple_ytdl_macos
+
+  # region Create a draft release
+  release:
+    needs: [build-windows, build-linux, build-macos]
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Download Windows executable
+      uses: actions/download-artifact@v4
+      with:
+        name: simple_ytdl_windows
+
+    - name: Download Linux executable
+      uses: actions/download-artifact@v4
+      with:
+        name: simple_ytdl_linux
+
+    - name: Download MacOS executable
+      uses: actions/download-artifact@v4
+      with:
+        name: simple_ytdl_macos
+
+    - name: Create a draft release
+      uses: softprops/action-gh-release@v2
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: ${{ github.ref_name }}
+        name: ${{ github.ref_name }}
+        draft: true
+        prerelease: false
+        files: |
+          simple_ytdl_win32.exe
+          simple_ytdl_linux
+          simple_ytdl_macos
