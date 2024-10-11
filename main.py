@@ -1,10 +1,10 @@
 import argparse
 import os
-import subprocess
 import sys
 import time
 
 import pyperclip
+import yt_dlp
 
 
 class simple_ytdl:
@@ -13,11 +13,6 @@ class simple_ytdl:
             True: "mp4",
             False: "mp3",
         }  # Dictionary of file extensions that correspond to the value of isVideo
-
-        self.ERROR_MSG: dict[type[Exception], str] = {
-            subprocess.TimeoutExpired: "Video search timed out.",
-            subprocess.CalledProcessError: "Invalid URL or the video cannot be found.",
-        }  # Dictionary of error messages that correspond to the exception
 
         self.clear = lambda: os.system("cls" if os.name == "nt" else "clear")  # Clear the console
 
@@ -66,32 +61,12 @@ class simple_ytdl:
         # Let the user read the printed line before filling the console with status updates
         time.sleep(1)
         # Start downloading the video
-        if self.isVideo:
-            subprocess.run(
-                [
-                    "yt-dlp",
-                    "--format",
-                    "bv*[ext=mp4]+ba[ext=m4a]/b[ext=mp4]/b",
-                    "-o",
-                    os.path.expanduser("~/Videos/%(title)s.%(ext)s"),
-                    link,
-                ]
-            )
-        else:
-            subprocess.run(
-                [
-                    "yt-dlp",
-                    "--extract-audio",
-                    "--audio-format",
-                    "mp3",
-                    "--audio-quality",
-                    "0",
-                    "-o",
-                    os.path.expanduser("~/Music/%(title)s.%(ext)s"),
-                    link,
-                ]
-            )
-        # Make sure the user sees the successful/failed download status before closing the console.
+        ydl_opts = {
+            "format": "bv*[ext=mp4]+ba[ext=m4a]/b[ext=mp4]/b" if self.isVideo else "ba[ext=mp3]/b",
+            "outtmpl": os.path.expanduser(f"~/{'Videos' if self.isVideo else 'Music'}/%(title)s.%(ext)s"),
+        }
+        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+            ydl.download([link])
         self.input("\nPress Enter to exit the program")
         sys.exit(0)
 
@@ -104,10 +79,19 @@ class simple_ytdl:
         self.clear()
         print("Processing the URL...", end="\n\n")
         try:
-            videoName = (subprocess.check_output(["yt-dlp", "-O", "%(title)s", link], text=True, timeout=10)).strip()
+            title_check_options = {
+                "quiet": True,
+                "no_warnings": True,
+                "skip_download": True,
+                "force_generic_extractor": True,
+                "outtmpl": "%(title)s.%(ext)s",
+            }
+            with yt_dlp.YoutubeDL(title_check_options) as title_checker:
+                info_dict = title_checker.extract_info(link, download=False)
+                videoName: str = info_dict["title"].strip().strip(".")  # type: ignore
         except Exception as e:
-            err_msg = self.ERROR_MSG.get(type(e), "An unknown error occurred.")
-            self.input(f"\n{err_msg} Press Enter to try again. ")
+            print(f"\nAn error occurred: {e}")
+            self.input(f"Press Enter to try again. ")
             return
         while True:
             self.clear()
