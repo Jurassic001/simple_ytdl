@@ -33,7 +33,7 @@ def build(clean: bool, simple: bool) -> None:
             "--name",
             executable_name,
             "--icon",
-            os.path.join(WORKING_DIR, "assets/executable icon.ico"),
+            os.path.join(WORKING_DIR, "assets/executable_icon.ico"),
             "main.py",
         ],
         cwd=WORKING_DIR,
