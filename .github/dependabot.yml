@@ -7,6 +7,22 @@ updates:
     schedule:
       interval: "weekly"
     groups:
-      default:
+      core:
+        patterns:
+          - pyperclip
+          - yt-dlp
+          - ffmpeg
+          - ffprobe
+      development:
+        patterns:
+          - pyinstaller
+          - pre-commit
+
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    groups:
+      actions:
         patterns:
           - "*"

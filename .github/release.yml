@@ -5,10 +5,8 @@ changelog:
     - title: Major Changes
       labels:
         - enhancement
-        - major
     - title: Minor Changes
       labels:
-        - minor
         - refactor
         - documentation
     - title: Bugfixes
