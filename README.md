@@ -4,26 +4,20 @@
 [![GitHub Release](https://img.shields.io/github/v/release/Jurassic001/simple_ytdl?style=flat-square)](https://github.com/Jurassic001/simple_ytdl/releases/latest)
 [![GitHub License](https://img.shields.io/github/license/Jurassic001/simple_ytdl?style=flat-square)](LICENSE)
 
-### An easy-to-use, text-based program for downloading Youtube videos at high fidelity, utilizing [yt-dlp](https://github.com/yt-dlp/yt-dlp) and [FFmpeg](https://www.ffmpeg.org).
+### An easy-to-use, text-based program for downloading Youtube videos at high quality, utilizing [yt-dlp](https://github.com/yt-dlp/yt-dlp) and [FFmpeg](https://www.ffmpeg.org).
 
 ## How to use
 ### Requirements
-#### `Windows & MacOS`
-None! The executable file contains all the necessary dependencies to run the program.
-
-#### `Linux`
-You need to have `xclip` installed on your system. You can install it using the following command:
-```bash
-sudo apt-get install xclip
-```
+Unfortunately, this program is only available for Windows at the moment. Support for other operating systems, such as MacOS, is planned for the future. <br/>
 
 ### Installation
-Download the executable (.exe) file for your operating system in [releases](https://github.com/Jurassic001/simple_ytdl/releases/latest). <br/>
+Download the executable (.exe) file in [releases](https://github.com/Jurassic001/simple_ytdl/releases/latest). <br/>
 That's it! You can now run the program and easily download videos at high quality!
 
 ### Program Usage
 1. Copy the URL of the desired media and run the program.
-1. You can choose between .mp4 (video) or .mp3 (audio) format, and the content will be downloaded at 1080p (HD).
+1. Simply follow the prompts! The program will allow you to switch between downloading the entire Youtube video (.mp4), or just the audio (.mp3).
+    * Media will automatically be downloaded at the highest quality available.
     * Download locations are the `Videos` folder for .mp4s and the `Music` folder for .mp3s.
 1. The program will also warn you if you try to submit something that doesn't look like a URL (although you can ignore the warning).
 
@@ -44,6 +38,7 @@ I wanted to extend this simplicity to other users, so I redesigned this program 
 * Add a GUI to the program
 * Add more download location options
 * Add workflow tests (need to circumvent Youtube bot checks)
+* Add cross-platform support (major undertaking)
 
 ## Legal
 ### Disclaimer

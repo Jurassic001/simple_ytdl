@@ -74,6 +74,12 @@ def main(strict: bool) -> None:
         check=strict,
         cwd=ROOT_DIR,
     )
+    # Setup Git Large File System
+    subprocess.run(
+        ["git", "lfs", "install"],
+        check=strict,
+        cwd=ROOT_DIR,
+    )
     print_with_sidebars("Requirement installation/setup successful", GREEN)
     sys.exit(0)
 

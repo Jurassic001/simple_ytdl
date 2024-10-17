@@ -2,7 +2,6 @@ import argparse
 import os
 import shutil
 import subprocess
-import sys
 
 WORKING_DIR: str = os.path.join(os.path.dirname(os.path.dirname(__file__)))
 
@@ -12,10 +11,11 @@ def build(clean: bool, simple: bool) -> None:
     if clean:
         shutil.rmtree(os.path.join(WORKING_DIR, "pyinstaller"), ignore_errors=True)
 
-    usr_platform = sys.platform
-    usr_platform = "macos" if usr_platform == "darwin" else usr_platform
+    # usr_platform = sys.platform
+    # usr_platform = "macos" if usr_platform == "darwin" else usr_platform
+    # executable_name = "simple_ytdl_" + usr_platform
 
-    executable_name = "simple_ytdl_" + usr_platform
+    executable_name = "simple_ytdl"
 
     if not simple:
         executable_name = f"{executable_name}.{subprocess.check_output(['git', 'rev-parse', '--short', 'HEAD'], text=True, cwd=WORKING_DIR).strip()}"
@@ -24,6 +24,10 @@ def build(clean: bool, simple: bool) -> None:
         [
             "pyinstaller",
             "--onefile",
+            "--add-binary",
+            f"{WORKING_DIR}/bin/yt-dlp.exe;bin",
+            "--add-binary",
+            f"{WORKING_DIR}/bin/ffmpeg.exe;bin",
             "--distpath",
             "./pyinstaller/dist",
             "--workpath",

@@ -1,10 +1,10 @@
 import argparse
 import os
+import subprocess
 import sys
 import time
 
 import pyperclip
-import yt_dlp
 
 
 class simple_ytdl:
@@ -16,17 +16,29 @@ class simple_ytdl:
 
         self.clear = lambda: os.system("cls" if os.name == "nt" else "clear")  # Clear the console
 
+        self.ERROR_MSG: dict[type[Exception], str] = {
+            subprocess.TimeoutExpired: "Video search timed out",
+            subprocess.CalledProcessError: "Invalid URL or the video cannot be found",
+        }  # Dictionary of error messages that correspond to the exception
+
+        self.YTDL_PATH: str = os.path.join(os.path.dirname(__file__), "bin/yt-dlp.exe")  # Path to the yt-dlp executable
+        self.FFMPEG_PATH: str = os.path.join(os.path.dirname(__file__), "bin/ffmpeg.exe")  # Path to the ffmpeg executable
+
         self.isVideo: bool = True  # Download format: True - mp4, False - mp3
         self.skip_prompts: bool = skip  # Skip input prompts
         self.prompt_skip_val: str = skip_val  # Value to return when skipping prompts
 
-        if sys.platform == "win32":
-            pyperclip.set_clipboard("windows")
-        elif sys.platform == "linux":
-            pyperclip.set_clipboard("xclip")
-        elif sys.platform == "darwin":
-            pyperclip.set_clipboard("pbobjc")
-        else:  # Unsupported OS
+        # if sys.platform == "win32":
+        #     pyperclip.set_clipboard("windows")
+        # elif sys.platform == "linux":
+        #     pyperclip.set_clipboard("xclip")
+        # elif sys.platform == "darwin":
+        #     pyperclip.set_clipboard("pbobjc")
+        # else:  # Unsupported OS
+        #     print("Unsupported OS")
+        #     sys.exit(1)
+
+        if sys.platform != "win32":
             print("Unsupported OS")
             sys.exit(1)
 
@@ -54,19 +66,35 @@ class simple_ytdl:
             link (str): The URL of the media that you want to download
             vidName (str): The name of the media that you want to download
         """
-        # Print the name of the to-be downloaded video and its destination
         self.clear()
         targ_folder = "Videos" if self.isVideo else "Music"
+        default_cmd = [
+            "--ffmpeg-location",
+            self.FFMPEG_PATH,
+            "-o",
+            os.path.expanduser(f"~/{targ_folder}/%(title)s.%(ext)s"),
+            link,
+        ]
+        # Print the name of the to-be downloaded video and its destination
         print(f"Downloading: {vidName} to your {targ_folder} folder\n")
         # Let the user read the printed line before filling the console with status updates
         time.sleep(1)
-        # Start downloading the video
-        ydl_opts = {
-            "format": "bv*[ext=mp4]+ba[ext=m4a]/b[ext=mp4]/b" if self.isVideo else "ba[ext=mp3]/b",
-            "outtmpl": os.path.expanduser(f"~/{'Videos' if self.isVideo else 'Music'}/%(title)s.%(ext)s"),
-        }
-        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-            ydl.download([link])
+        # Setup media downloading command
+        if self.isVideo:
+            cmd = [
+                "--format",
+                "bv*[ext=mp4][fps<=60]+ba[ext=m4a]",
+            ]
+        else:
+            cmd = [
+                "--extract-audio",
+                "--audio-format",
+                "mp3",
+                "--audio-quality",
+                "0",
+            ]
+        # Run the download command
+        subprocess.run([self.YTDL_PATH] + cmd + default_cmd)
         self.input("\nPress Enter to exit the program")
         sys.exit(0)
 
@@ -79,19 +107,10 @@ class simple_ytdl:
         self.clear()
         print("Processing the URL...", end="\n\n")
         try:
-            title_check_options = {
-                "quiet": True,
-                "no_warnings": True,
-                "skip_download": True,
-                "force_generic_extractor": True,
-                "outtmpl": "%(title)s.%(ext)s",
-            }
-            with yt_dlp.YoutubeDL(title_check_options) as title_checker:
-                info_dict = title_checker.extract_info(link, download=False)
-                videoName: str = info_dict["title"].strip().strip(".")  # type: ignore
+            videoName = (subprocess.check_output([self.YTDL_PATH, "-O", '"%(title)s"', link], text=True, timeout=10)).strip()
         except Exception as e:
-            print(f"\nAn error occurred: {e}")
-            self.input(f"Press Enter to try again. ")
+            err_msg = self.ERROR_MSG.get(type(e), f"An unknown error occurred: {e}")
+            self.input(f"\n{err_msg}\n Press Enter to try again. ")
             return
         while True:
             self.clear()
