@@ -5,6 +5,7 @@ changelog:
     - title: Major Changes
       labels:
         - enhancement
+        - breaking
     - title: Minor Changes
       labels:
         - refactor

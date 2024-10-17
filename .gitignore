@@ -17,8 +17,5 @@ dist/
 build/
 *.spec
 
-# unused executables dir
-bin/
-
 # testing workflows will fail because Youtube flags the IP address as a bot
 .github/workflows/test-*.yml

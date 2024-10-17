@@ -14,7 +14,6 @@ def build(clean: bool, simple: bool) -> None:
 
     usr_platform = sys.platform
     usr_platform = "macos" if usr_platform == "darwin" else usr_platform
-
     executable_name = "simple_ytdl_" + usr_platform
 
     if not simple:
@@ -24,6 +23,10 @@ def build(clean: bool, simple: bool) -> None:
         [
             "pyinstaller",
             "--onefile",
+            "--add-binary",
+            f"{WORKING_DIR}/bin/yt-dlp.exe;bin",
+            "--add-binary",
+            f"{WORKING_DIR}/bin/ffmpeg.exe;bin",
             "--distpath",
             "./pyinstaller/dist",
             "--workpath",
