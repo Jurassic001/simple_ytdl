@@ -91,7 +91,7 @@ jobs:
   release:
     # Wait for all build jobs to complete, as long as none of them failed then we will create the draft release
     needs: [build-windows, build-linux, build-macos]
-    if: ${{ needs.build-windows.result != 'failure' && needs.build-linux.result != 'failure' && needs.build-macos.result != 'failure' }}
+    if: ${{ !failure() }}
     runs-on: ubuntu-latest
 
     steps:
