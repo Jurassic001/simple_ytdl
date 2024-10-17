@@ -2,6 +2,7 @@ import argparse
 import os
 import shutil
 import subprocess
+import sys
 
 WORKING_DIR: str = os.path.join(os.path.dirname(os.path.dirname(__file__)))
 
@@ -11,11 +12,9 @@ def build(clean: bool, simple: bool) -> None:
     if clean:
         shutil.rmtree(os.path.join(WORKING_DIR, "pyinstaller"), ignore_errors=True)
 
-    # usr_platform = sys.platform
-    # usr_platform = "macos" if usr_platform == "darwin" else usr_platform
-    # executable_name = "simple_ytdl_" + usr_platform
-
-    executable_name = "simple_ytdl"
+    usr_platform = sys.platform
+    usr_platform = "macos" if usr_platform == "darwin" else usr_platform
+    executable_name = "simple_ytdl_" + usr_platform
 
     if not simple:
         executable_name = f"{executable_name}.{subprocess.check_output(['git', 'rev-parse', '--short', 'HEAD'], text=True, cwd=WORKING_DIR).strip()}"

@@ -1,5 +1,7 @@
-name: Build and Release (Windows, Ubuntu, macOS)
-# Build and release the simple_ytdl executable on Windows, Ubuntu, and macOS when a tag is pushed
+name: Build executable and Create draft release
+# Build and release the simple_ytdl executable when a tag is pushed
+# Executables will be built according to the values of the BUILD_WINDOWS, BUILD_LINUX, and BUILD_MACOS repository variables
+# Set repo variable values in Settings > Secrets and variables > Actions > Variables > Repository variables
 
 on:
   push:
@@ -9,6 +11,7 @@ on:
 jobs:
   # region Build Win exe
   build-windows:
+    if: ${{ vars.BUILD_WINDOWS == 'true' }}
     runs-on: windows-latest
 
     steps:
@@ -34,6 +37,7 @@ jobs:
 
   # region Build Linux exe
   build-linux:
+    if: ${{ vars.BUILD_LINUX == 'true' }}
     runs-on: ubuntu-latest
 
     steps:
@@ -59,6 +63,7 @@ jobs:
 
   # region Build MacOS exe
   build-macos:
+    if: ${{ vars.BUILD_MACOS == 'true' }}
     runs-on: macos-latest
 
     steps:
@@ -89,16 +94,19 @@ jobs:
 
     steps:
     - name: Download Windows executable
+      if: ${{ vars.BUILD_WINDOWS == 'true' }}
       uses: actions/download-artifact@v4
       with:
         name: simple_ytdl_windows
 
     - name: Download Linux executable
+      if: ${{ vars.BUILD_LINUX == 'true' }}
       uses: actions/download-artifact@v4
       with:
         name: simple_ytdl_linux
 
     - name: Download MacOS executable
+      if: ${{ vars.BUILD_MACOS == 'true' }}
       uses: actions/download-artifact@v4
       with:
         name: simple_ytdl_macos
@@ -113,6 +121,6 @@ jobs:
         draft: true
         prerelease: false
         files: |
-          simple_ytdl_win32.exe
-          simple_ytdl_linux
-          simple_ytdl_macos
+          ${{ vars.BUILD_WINDOWS == 'true' && 'simple_ytdl_win32.exe' || '' }}
+          ${{ vars.BUILD_LINUX == 'true' && 'simple_ytdl_linux' || '' }}
+          ${{ vars.BUILD_MACOS == 'true' && 'simple_ytdl_macos' || '' }}
