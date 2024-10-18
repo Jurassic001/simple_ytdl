@@ -122,8 +122,11 @@ class simple_ytdl:
         # Run the download command
         # TODO: Capture the command output and display a progress bar-esque message, so the user doesn't have to get exposed to raw command output
         subprocess.run([self.YTDL_PATH] + cmd + default_cmd)
-        self.input("\nPress Enter to exit the program")
-        sys.exit(0)
+        finished_input = self.input("\nPress Enter to exit the program, or Backspace to download another video")
+        if finished_input == "y":
+            sys.exit(0)
+        else:
+            return
 
     def configDownload(self, link: str) -> None:
         """Here the user can see the video title, choose to download as an mp4 or mp3, and continue or go back
@@ -162,11 +165,12 @@ class simple_ytdl:
             print(f"Selected video: {videoName}")
             print(f"Downloading as an {self.EXT_DICT[self.isVideo]}", end="\n\n")
 
-            config_prompt = ["Enter to download", f"M to switch to {self.EXT_DICT[not self.isVideo]}", "Backspace to go back"]
+            config_prompt = ["Enter to download", f"M to switch to {self.EXT_DICT[not self.isVideo]}", "Backspace to re-scan clipboard"]
             user_input = self.input("\n".join(config_prompt))
             match user_input:
                 case "y":
                     self.downloadVideo(link, videoName)
+                    return
                 case "m":
                     self.isVideo = not self.isVideo
                     continue
