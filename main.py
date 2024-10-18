@@ -8,6 +8,11 @@ from typing import Literal
 import keyboard as kb
 import pyperclip
 
+RED: str = "\033[0;31m"
+GREEN: str = "\033[0;32m"
+CYAN: str = "\033[0;36m"
+NC: str = "\033[0m"  # No color
+
 
 class simple_ytdl:
     def __init__(self, yes: bool, arg_url: str) -> None:
@@ -63,7 +68,7 @@ class simple_ytdl:
                 usr_input = kb.read_event().name
             except Exception as e:
                 # TODO: logger.traceback(e)
-                usr_input = input(f"Failed to read keyboard events due to {type(e)} exception\nPlease type your input: ").strip().lower()[0]
+                usr_input = input(f"{RED}Failed to read keyboard events due to {type(e)} exception\nPlease type your input: {NC}").strip().lower()[0]
             finally:
                 # Handle input, either from keyboard event or from user input
                 match usr_input:
@@ -84,7 +89,7 @@ class simple_ytdl:
                             ]
                             if allow_m:
                                 unrecog_msg.insert(len(unrecog_msg) - 1, "or M")
-                            print("\n".join(unrecog_msg))
+                            print(RED + "\n".join(unrecog_msg) + NC)
                             unrecog_msg_printed = True
                             time.sleep(0.5)
                         continue
@@ -106,7 +111,7 @@ class simple_ytdl:
             link,
         ]
         # Print the name of the to-be downloaded video and its destination
-        print(f"Downloading: {vidName} to your {targ_folder} folder\n")
+        print(f"{GREEN}Downloading: {vidName} to your {targ_folder} folder\n{NC}")
         # Let the user read the printed line before filling the console with status updates
         time.sleep(1)
         # Setup media downloading command
@@ -126,7 +131,7 @@ class simple_ytdl:
         # Run the download command
         # TODO: Capture the command output and display a progress bar-esque message, so the user doesn't have to get exposed to raw command output
         subprocess.run([self.YTDL_PATH] + cmd + default_cmd)
-        finished_input = self.input("\nPress Enter to exit the program, or Backspace to download another video")
+        finished_input = self.input(f"\n{CYAN}Press Enter to exit the program, or Backspace to download another video{NC}")
         if finished_input == "y":
             sys.exit(0)
         else:
@@ -140,14 +145,12 @@ class simple_ytdl:
         """
         self.clear()
         # TODO: Make the processing message have an animated spinner (/,|,\,-)
-        print("Processing the URL...", end="\n\n")
+        print(f"{GREEN}Processing the URL...{NC}", end="\n\n")
         # Process URL to find video name, accounting for errors
         try:
             video_search = subprocess.run([self.YTDL_PATH, "-O", '"%(title)s"', link], capture_output=True, check=True, text=True, timeout=15)
         except Exception as e:
-            RED = "\033[0;31m"
-            NO_COLOR = "\033[0m"
-            err_msg = f"{RED}ERROR:{NO_COLOR} "
+            err_msg = f"{RED}ERROR: "
             # Transform common errors to be user-friendly
             match type(e):
                 case subprocess.TimeoutExpired:
@@ -158,7 +161,7 @@ class simple_ytdl:
                     # TODO: logger.traceback(e)
                     # TODO: logger.error(e.stderr)
                     err_msg += f"Failed to process URL due to {type(e)} exception"
-            error_input = self.input(f"{err_msg}\nPress Enter to re-scan clipboard, or press Backspace to exit")
+            error_input = self.input(f"{err_msg}\n{CYAN}Press Enter to re-scan clipboard, or press Backspace to exit{NC}")
             if error_input == "y":
                 return
             else:
@@ -167,11 +170,11 @@ class simple_ytdl:
         videoName = video_search.stdout.strip()
         while True:
             self.clear()
-            print(f"Selected video: {videoName}")
-            print(f"Downloading as an {self.EXT_DICT[self.isVideo]}", end="\n\n")
+            print(f"{GREEN}Selected video: {videoName}{NC}")
+            print(f"{GREEN}Downloading as an {self.EXT_DICT[self.isVideo]}{NC}", end="\n\n")
 
             config_prompt = ["Enter to download", f"M to switch to {self.EXT_DICT[not self.isVideo]}", "Backspace to re-scan clipboard"]
-            user_input = self.input("\n".join(config_prompt), allow_m=True)
+            user_input = self.input(CYAN + "\n".join(config_prompt) + NC, allow_m=True)
             match user_input:
                 case "y":
                     self.downloadVideo(link, videoName)
@@ -186,14 +189,15 @@ class simple_ytdl:
         while True:
             # clear terminal and get clipboard content
             self.clear()
-            print("Checking user clipboard for a URL...", end="\n\n")
+            # TODO: Remove this print statement? Clipboard checks are pretty much instanst
+            print(f"{GREEN}Checking user clipboard for a URL...{NC}", end="\n\n")
             url = pyperclip.paste()
             # valid URL check
             if url.startswith("http"):
                 self.configDownload(url)
             else:
                 # Warn the user if a URL isn't detected and give them the option to continue anyways/retry the download.
-                valid_fail = self.input("Valid URL not found. Press Enter to continue, or Backspace to exit")
+                valid_fail = self.input(f"{RED}Valid URL not found. Press Enter to continue, or Backspace to exit{NC}")
                 if valid_fail == "y":
                     self.configDownload(url)
                 else:
