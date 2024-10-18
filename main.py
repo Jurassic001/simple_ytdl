@@ -82,7 +82,7 @@ class simple_ytdl:
                         if allow_m:
                             unrecog_msg.insert(len(unrecog_msg) - 1, "m (Switch desired media format)")
                         print("\n".join(unrecog_msg))
-                        time.sleep(0.1)
+                        time.sleep(0.5)
                         continue
 
     def downloadVideo(self, link: str, vidName: str) -> None:
