@@ -14,6 +14,13 @@ CYAN: str = "\033[0;36m"
 NC: str = "\033[0m"  # No color
 
 
+class FallbackInputTrigger(Exception):
+    """Exception to trigger the fallback input method"""
+
+    def __init__(self) -> None:
+        super().__init__("Fallback input triggered due to user input")
+
+
 class simple_ytdl:
     def __init__(self, yes: bool, arg_url: str) -> None:
         self.EXT_DICT: dict[bool, str] = {
@@ -66,9 +73,14 @@ class simple_ytdl:
             time.sleep(0.35)
             try:
                 usr_input = kb.read_event().name
+                if usr_input == "Q":
+                    # triggering the fallback input manually requires shift+q, so it's unlikely to be pressed by accident
+                    raise FallbackInputTrigger
             except Exception as e:
                 # TODO: logger.traceback(e)
-                usr_input = input(f"{RED}Failed to read keyboard events due to {type(e)} exception\nPlease type your input: {NC}").strip().lower()[0]
+                usr_input = (
+                    input(f"\n{RED}Failed to read keyboard events due to {type(e).__name__}\n{CYAN}Please type your input: {NC}").strip().lower()[0]
+                )
             finally:
                 # Handle input, either from keyboard event or from user input
                 match usr_input:
@@ -160,7 +172,7 @@ class simple_ytdl:
                 case _:
                     # TODO: logger.traceback(e)
                     # TODO: logger.error(e.stderr)
-                    err_msg += f"Failed to process URL due to {type(e)} exception"
+                    err_msg += f"Failed to process URL due to {type(e).__name__} exception"
             error_input = self.input(f"{err_msg}\n{CYAN}Press Enter to re-scan clipboard, or press Backspace to exit{NC}")
             if error_input == "y":
                 return
