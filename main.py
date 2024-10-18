@@ -57,6 +57,7 @@ class simple_ytdl:
 
         print(prompt)
         while True:
+            time.sleep(0.35)
             try:
                 usr_input = kb.read_event().name
             except Exception as e:
@@ -75,12 +76,12 @@ class simple_ytdl:
                         # Handle unrecognized input by displaying a message with valid options
                         unrecog_msg = [
                             "\nUnrecognized input, options are:",
-                            "y (Equivalent to Enter)",
-                            "n (Equivalent to Backspace)",
-                            "Please try again",
+                            "Enter/Y",
+                            "Backspace/N",
+                            "Please try again...",
                         ]
                         if allow_m:
-                            unrecog_msg.insert(len(unrecog_msg) - 1, "m (Switch desired media format)")
+                            unrecog_msg.insert(len(unrecog_msg) - 1, "or M")
                         print("\n".join(unrecog_msg))
                         time.sleep(0.5)
                         continue
@@ -152,6 +153,7 @@ class simple_ytdl:
                     err_msg += "Invalid URL or the video cannot be found"
                 case _:
                     # TODO: logger.traceback(e)
+                    # TODO: logger.error(e.stderr)
                     err_msg += f"Failed to process URL due to {type(e)} exception"
             error_input = self.input(f"{err_msg}\nPress Enter to re-scan clipboard, or press Backspace to exit")
             if error_input == "y":
@@ -166,7 +168,7 @@ class simple_ytdl:
             print(f"Downloading as an {self.EXT_DICT[self.isVideo]}", end="\n\n")
 
             config_prompt = ["Enter to download", f"M to switch to {self.EXT_DICT[not self.isVideo]}", "Backspace to re-scan clipboard"]
-            user_input = self.input("\n".join(config_prompt))
+            user_input = self.input("\n".join(config_prompt), allow_m=True)
             match user_input:
                 case "y":
                     self.downloadVideo(link, videoName)
