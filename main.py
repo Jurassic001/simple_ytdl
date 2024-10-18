@@ -56,8 +56,8 @@ class simple_ytdl:
             return "y"
 
         print(prompt)
+        unrecog_msg_printed: bool = False
         while True:
-            time.sleep(0.35)
             try:
                 usr_input = kb.read_event().name
             except Exception as e:
@@ -73,17 +73,19 @@ class simple_ytdl:
                     case "m" if allow_m:
                         return "m"
                     case _:
-                        # Handle unrecognized input by displaying a message with valid options
-                        unrecog_msg = [
-                            "\nUnrecognized input, options are:",
-                            "Enter/Y",
-                            "Backspace/N",
-                            "Please try again...",
-                        ]
-                        if allow_m:
-                            unrecog_msg.insert(len(unrecog_msg) - 1, "or M")
-                        print("\n".join(unrecog_msg))
-                        time.sleep(0.5)
+                        # Handle unrecognized input by displaying a message with valid options (only do it once)
+                        if not unrecog_msg_printed:
+                            unrecog_msg = [
+                                "\nUnrecognized input, options are:",
+                                "Enter/Y",
+                                "Backspace/N",
+                                "Please try again...",
+                            ]
+                            if allow_m:
+                                unrecog_msg.insert(len(unrecog_msg) - 1, "or M")
+                            print("\n".join(unrecog_msg))
+                            unrecog_msg_printed = True
+                            time.sleep(0.5)
                         continue
 
     def downloadVideo(self, link: str, vidName: str) -> None:
@@ -175,6 +177,7 @@ class simple_ytdl:
                     return
                 case "m":
                     self.isVideo = not self.isVideo
+                    time.sleep(0.35)
                     continue
                 case "n":
                     return
