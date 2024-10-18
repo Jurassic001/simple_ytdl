@@ -3,12 +3,14 @@ import os
 import subprocess
 import sys
 import time
+from typing import Literal
 
+import keyboard as kb
 import pyperclip
 
 
 class simple_ytdl:
-    def __init__(self, skip: bool, skip_val: str, arg_url: str) -> None:
+    def __init__(self, yes: bool, arg_url: str) -> None:
         self.EXT_DICT: dict[bool, str] = {
             True: "mp4",
             False: "mp3",
@@ -16,17 +18,11 @@ class simple_ytdl:
 
         self.clear = lambda: os.system("cls" if os.name == "nt" else "clear")  # Clear the console
 
-        self.ERROR_MSG: dict[type[Exception], str] = {
-            subprocess.TimeoutExpired: "Video search timed out",
-            subprocess.CalledProcessError: "Invalid URL or the video cannot be found",
-        }  # Dictionary of error messages that correspond to the exception
-
         self.YTDL_PATH: str = os.path.join(os.path.dirname(__file__), "bin/yt-dlp.exe")  # Path to the yt-dlp executable
         self.FFMPEG_PATH: str = os.path.join(os.path.dirname(__file__), "bin/ffmpeg.exe")  # Path to the ffmpeg executable
 
         self.isVideo: bool = True  # Download format: True - mp4, False - mp3
-        self.skip_prompts: bool = skip  # Skip input prompts
-        self.prompt_skip_val: str = skip_val  # Value to return when skipping prompts
+        self.skip_prompts: bool = yes  # Whether or not to skip input prompts with a value of "y"
 
         # if sys.platform == "win32":
         #     pyperclip.set_clipboard("windows")
@@ -45,19 +41,49 @@ class simple_ytdl:
         if arg_url != "none":
             pyperclip.copy(arg_url)
 
-    def input(self, prompt: str = "") -> str:
-        """Prompt the user for input, or skip the prompt if the relevant argument is applied
+    def input(self, prompt: str = "", allow_m: bool = False) -> Literal["y", "n", "m"]:
+        """Get user input from the keyboard, with traditional input as a fallback
 
         Args:
-            prompt (str): The prompt to display to the user
+            prompt (str): The prompt to give the user
+            allow_m (bool): Whether or not `m` is an allowed input/output
 
         Returns:
-            str: The user's input, or the value returned when skipping prompts
+            str (y, n, m): The user input, transformed to be one of three single-character strings
         """
         if self.skip_prompts:
-            return self.prompt_skip_val
-        else:
-            return input(prompt).strip().lower()
+            # TODO: logger.debug("Skipping user input with value of 'y'")
+            return "y"
+
+        print(prompt)
+        while True:
+            try:
+                usr_input = kb.read_event().name
+            except Exception as e:
+                # TODO: logger.traceback(e)
+                usr_input = input(f"Failed to read keyboard events due to {type(e)} exception\nPlease type your input: ").strip().lower()[0]
+            finally:
+                # Handle input, either from keyboard event or from user input
+                match usr_input:
+                    case "enter" | "y":
+                        return "y"
+                    case "backspace" | "n":
+                        return "n"
+                    case "m" if allow_m:
+                        return "m"
+                    case _:
+                        # Handle unrecognized input by displaying a message with valid options
+                        unrecog_msg = [
+                            "\nUnrecognized input, options are:",
+                            "y (Equivalent to Enter)",
+                            "n (Equivalent to Backspace)",
+                            "Please try again",
+                        ]
+                        if allow_m:
+                            unrecog_msg.insert(len(unrecog_msg) - 1, "m (Switch desired media format)")
+                        print("\n".join(unrecog_msg))
+                        time.sleep(0.1)
+                        continue
 
     def downloadVideo(self, link: str, vidName: str) -> None:
         """Download the target video
@@ -94,6 +120,7 @@ class simple_ytdl:
                 "0",
             ]
         # Run the download command
+        # TODO: Capture the command output and display a progress bar-esque message, so the user doesn't have to get exposed to raw command output
         subprocess.run([self.YTDL_PATH] + cmd + default_cmd)
         self.input("\nPress Enter to exit the program")
         sys.exit(0)
@@ -105,29 +132,46 @@ class simple_ytdl:
             link (str): The URL of the media that you want to download
         """
         self.clear()
+        # TODO: Make the processing message have an animated spinner (/,|,\,-)
         print("Processing the URL...", end="\n\n")
+        # Process URL to find video name, accounting for errors
         try:
-            videoName = (subprocess.check_output([self.YTDL_PATH, "-O", '"%(title)s"', link], text=True, timeout=10)).strip()
+            video_search = subprocess.run([self.YTDL_PATH, "-O", '"%(title)s"', link], capture_output=True, check=True, text=True, timeout=15)
         except Exception as e:
-            err_msg = self.ERROR_MSG.get(type(e), f"An unknown error occurred: {e}")
-            self.input(f"\n{err_msg}\n Press Enter to try again. ")
-            return
+            RED = "\033[0;31m"
+            NO_COLOR = "\033[0m"
+            err_msg = f"{RED}ERROR:{NO_COLOR} "
+            # Transform common errors to be user-friendly
+            match type(e):
+                case subprocess.TimeoutExpired:
+                    err_msg += "Video search timed out"
+                case subprocess.CalledProcessError:
+                    err_msg += "Invalid URL or the video cannot be found"
+                case _:
+                    # TODO: logger.traceback(e)
+                    err_msg += f"Failed to process URL due to {type(e)} exception"
+            error_input = self.input(f"{err_msg}\nPress Enter to re-scan clipboard, or press Backspace to exit")
+            if error_input == "y":
+                return
+            else:
+                sys.exit(1)
+        # Display video name and give user some simple options
+        videoName = video_search.stdout.strip()
         while True:
             self.clear()
             print(f"Selected video: {videoName}")
             print(f"Downloading as an {self.EXT_DICT[self.isVideo]}", end="\n\n")
 
-            print("Type anything to confirm and download the video")
-            print(f'Type "S" to switch to {self.EXT_DICT[not self.isVideo]}')
-            print('Type "N" to go back')
-            time.sleep(0.5)
-            user_input = self.input()
-            if user_input.startswith("s"):
-                self.isVideo = not self.isVideo
-            elif user_input.startswith("n"):
-                return
-            else:
-                self.downloadVideo(link, videoName)
+            config_prompt = ["Enter to download", f"M to switch to {self.EXT_DICT[not self.isVideo]}", "Backspace to go back"]
+            user_input = self.input("\n".join(config_prompt))
+            match user_input:
+                case "y":
+                    self.downloadVideo(link, videoName)
+                case "m":
+                    self.isVideo = not self.isVideo
+                    continue
+                case "n":
+                    return
 
     def main(self) -> None:
         while True:
@@ -140,27 +184,21 @@ class simple_ytdl:
                 self.configDownload(url)
             else:
                 # Warn the user if a URL isn't detected and give them the option to continue anyways/retry the download.
-                valid_fail = self.input("Valid URL not found. Do you want to continue? (y/n) ")
-                time.sleep(0.5)
-                if valid_fail.startswith("n"):
-                    continue
-                else:
+                valid_fail = self.input("Valid URL not found. Press Enter to continue, or Backspace to exit")
+                if valid_fail == "y":
                     self.configDownload(url)
+                else:
+                    sys.exit(1)
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        "--skip",
+        "--yes",
+        "-y",
         action="store_true",
         default=False,
-        help="Skip input prompts and use default values",
-    )
-    parser.add_argument(
-        "--skip-val",
-        type=str,
-        default="",
-        help="Value to return when skipping prompts",
+        help='Pass a string value of "y" on user input prompts',
     )
     parser.add_argument(
         "--url",
@@ -170,5 +208,5 @@ if __name__ == "__main__":
     )
     args = parser.parse_args()
 
-    download = simple_ytdl(args.skip, args.skip_val, args.url)
+    download = simple_ytdl(args.yes, args.url)
     download.main()
