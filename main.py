@@ -58,6 +58,7 @@ class simple_ytdl:
         print(prompt)
         unrecog_msg_printed: bool = False
         while True:
+            time.sleep(0.35)
             try:
                 usr_input = kb.read_event().name
             except Exception as e:
@@ -177,7 +178,6 @@ class simple_ytdl:
                     return
                 case "m":
                     self.isVideo = not self.isVideo
-                    time.sleep(0.35)
                     continue
                 case "n":
                     return
