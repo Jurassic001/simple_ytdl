@@ -35,6 +35,7 @@ class simple_ytdl:
 
         self.isVideo: bool = True  # Download format: True - mp4, False - mp3
         self.skip_prompts: bool = yes  # Whether or not to skip input prompts with a value of "y"
+        self.fallback_input: Exception | None = None  # None if no fallback input has been triggered, otherwise the exception that triggered it
 
         # if sys.platform == "win32":
         #     pyperclip.set_clipboard("windows")
@@ -72,15 +73,20 @@ class simple_ytdl:
         while True:
             time.sleep(0.35)
             try:
+                if self.fallback_input:
+                    # If the fallback input was triggered once, then don't bother to try the main input method again
+                    raise self.fallback_input
                 usr_input = kb.read_event().name
                 if usr_input == "Q":
                     # triggering the fallback input manually requires shift+q, so it's unlikely to be pressed by accident
                     raise FallbackInputTrigger
             except Exception as e:
                 # TODO: logger.traceback(e)
-                usr_input = (
-                    input(f"\n{RED}Failed to read keyboard events due to {type(e).__name__}\n{CYAN}Please type your input: {NC}").strip().lower()[0]
-                )
+                if not self.fallback_input:
+                    # If the fallback input hasn't been triggered yet, then store the exception that caused it and print a small error message
+                    self.fallback_input = e
+                    print(f"\n{RED}Failed to read keyboard events due to {type(e).__name__}{NC}")
+                usr_input = input(f"{CYAN}Please type your input: {NC}").strip().lower()[0]
             finally:
                 # Handle input, either from keyboard event or from user input
                 match usr_input:
@@ -91,16 +97,15 @@ class simple_ytdl:
                     case "m" if allow_m:
                         return "m"
                     case _:
-                        # Handle unrecognized input by displaying a message with valid options (only do it once)
-                        if not unrecog_msg_printed:
+                        if not unrecog_msg_printed and self.fallback_input:
+                            # Handle unrecognized fallback input by displaying a message with valid options (only do it once)
                             unrecog_msg = [
-                                "\nUnrecognized input, options are:",
-                                "Enter/Y",
-                                "Backspace/N",
-                                "Please try again...",
+                                "\nUnrecognized input, fallback options are:",
+                                "Y (Equivalent to Enter)",
+                                "N (Equivalent to Backspace)",
                             ]
                             if allow_m:
-                                unrecog_msg.insert(len(unrecog_msg) - 1, "or M")
+                                unrecog_msg.append("or M")
                             print(RED + "\n".join(unrecog_msg) + NC)
                             unrecog_msg_printed = True
                             time.sleep(0.5)
