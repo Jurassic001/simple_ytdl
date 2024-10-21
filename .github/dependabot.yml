@@ -7,22 +7,15 @@ updates:
     schedule:
       interval: "weekly"
     groups:
-      core:
+      Python:
         patterns:
-          - pyperclip
-          - yt-dlp
-          - ffmpeg
-          - ffprobe
-      development:
-        patterns:
-          - pyinstaller
-          - pre-commit
+          - "*"
 
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
       interval: "weekly"
     groups:
-      actions:
+      GitHub-Actions:
         patterns:
           - "*"
