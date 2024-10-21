@@ -178,11 +178,11 @@ class simple_ytdl:
                     # TODO: logger.traceback(e)
                     # TODO: logger.error(e.stderr)
                     err_msg += f"Failed to process URL due to {type(e).__name__} exception"
-            error_input = self.input(f"{err_msg}\n{CYAN}Press Enter to re-scan clipboard, or press Backspace to exit{NC}")
+            error_input = self.input(f"{err_msg}\n{CYAN}Press Enter to exit, or press Backspace to re-scan clipboard{NC}")
             if error_input == "y":
-                return
-            else:
                 sys.exit(1)
+            else:
+                return
         # Display video name and give user some simple options
         videoName = video_search.stdout.strip()
         while True:
@@ -214,11 +214,13 @@ class simple_ytdl:
                 self.configDownload(url)
             else:
                 # Warn the user if a URL isn't detected and give them the option to continue anyways/retry the download.
-                valid_fail = self.input(f"{RED}Valid URL not found. Press Enter to continue, or Backspace to exit{NC}")
+                valid_fail = self.input(f"{RED}Valid URL not found. Press Enter to forcefully continue, or Backspace to re-scan clipboard{NC}")
                 if valid_fail == "y":
                     self.configDownload(url)
                 else:
-                    sys.exit(1)
+                    self.clear()
+                    time.sleep(0.1)
+                    continue
 
 
 if __name__ == "__main__":
