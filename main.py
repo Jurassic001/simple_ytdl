@@ -8,10 +8,14 @@ from typing import Literal
 import keyboard as kb
 import pyperclip
 
-RED: str = "\033[0;31m"
-GREEN: str = "\033[0;32m"
-CYAN: str = "\033[0;36m"
+RED: str = "\033[0;31m"  # Used for error msgs and problem reports
+GREEN: str = "\033[0;32m"  # Used for success/info messages
+CYAN: str = "\033[0;36m"  # Used for user input prompts
 NC: str = "\033[0m"  # No color
+
+# Used ONLY for download status messages
+YELLOW: str = "\033[0;33m"
+BLUE: str = "\033[0;94m"
 
 
 class FallbackInputTrigger(Exception):
@@ -118,20 +122,25 @@ class simple_ytdl:
             link (str): The URL of the media that you want to download
             vidName (str): The name of the media that you want to download
         """
+        # Download process setup
         self.clear()
         targ_folder = "Videos" if self.isVideo else "Music"
+        progress_template = f"{BLUE}Download Completion: %(progress._percent_str)s || {YELLOW}Time Remaining: %(progress._eta_str)s{NC}"
+        print(f"{GREEN}Downloading: {vidName} to your {targ_folder} folder{NC}")
+
+        # universal yt-dlp arguments (appended to specific args because the URL must be the last yt-dlp argument)
         default_cmd = [
             "--ffmpeg-location",
             self.FFMPEG_PATH,
             "-o",
             os.path.expanduser(f"~/{targ_folder}/%(title)s.%(ext)s"),
+            "--quiet",
+            "--progress",
+            "--progress-template",
+            progress_template,
             link,
         ]
-        # Print the name of the to-be downloaded video and its destination
-        print(f"{GREEN}Downloading: {vidName} to your {targ_folder} folder\n{NC}")
-        # Let the user read the printed line before filling the console with status updates
-        time.sleep(1)
-        # Setup media downloading command
+        # extension specific yt-dlp arguments
         if self.isVideo:
             cmd = [
                 "--format",
@@ -146,7 +155,6 @@ class simple_ytdl:
                 "0",
             ]
         # Run the download command
-        # TODO: Capture the command output and display a progress bar-esque message, so the user doesn't have to get exposed to raw command output
         subprocess.run([self.YTDL_PATH] + cmd + default_cmd)
         finished_input = self.input(f"\n{CYAN}Press Enter to exit the program, or Backspace to download another video{NC}")
         if finished_input == "y":
