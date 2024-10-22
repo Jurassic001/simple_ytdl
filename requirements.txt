@@ -1,4 +1,4 @@
 keyboard==0.13.5
 pre-commit==4.0.1
-pyinstaller==6.10.0
+pyinstaller==6.11.0
 pyperclip==1.9.0
