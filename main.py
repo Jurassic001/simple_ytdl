@@ -2,11 +2,28 @@ import argparse
 import os
 import subprocess
 import sys
+import threading
 import time
 from typing import Literal
 
 import keyboard as kb
 import pyperclip
+
+RED: str = "\033[0;31m"  # Used for error msgs and problem reports
+GREEN: str = "\033[0;32m"  # Used for success/info messages
+CYAN: str = "\033[0;36m"  # Used for user input prompts
+NC: str = "\033[0m"  # No color
+
+# Used ONLY for download status messages
+YELLOW: str = "\033[0;33m"
+BLUE: str = "\033[0;94m"
+
+
+class FallbackInputTrigger(Exception):
+    """Exception to trigger the fallback input method"""
+
+    def __init__(self) -> None:
+        super().__init__("Fallback input triggered due to user input")
 
 
 class simple_ytdl:
@@ -23,6 +40,7 @@ class simple_ytdl:
 
         self.isVideo: bool = True  # Download format: True - mp4, False - mp3
         self.skip_prompts: bool = yes  # Whether or not to skip input prompts with a value of "y"
+        self.fallback_input: Exception | None = None  # None if no fallback input has been triggered, otherwise the exception that triggered it
 
         # if sys.platform == "win32":
         #     pyperclip.set_clipboard("windows")
@@ -60,10 +78,20 @@ class simple_ytdl:
         while True:
             time.sleep(0.35)
             try:
+                if self.fallback_input:
+                    # If the fallback input was triggered once, then don't bother to try the main input method again
+                    raise self.fallback_input
                 usr_input = kb.read_event().name
+                if usr_input == "Q":
+                    # triggering the fallback input manually requires shift+q, so it's unlikely to be pressed by accident
+                    raise FallbackInputTrigger
             except Exception as e:
                 # TODO: logger.traceback(e)
-                usr_input = input(f"Failed to read keyboard events due to {type(e)} exception\nPlease type your input: ").strip().lower()[0]
+                if not self.fallback_input:
+                    # If the fallback input hasn't been triggered yet, then store the exception that caused it and print a small error message
+                    self.fallback_input = e
+                    print(f"\n{RED}Failed to read keyboard events due to {type(e).__name__}{NC}")
+                usr_input = input(f"{CYAN}Please type your input: {NC}").strip().lower()[0]
             finally:
                 # Handle input, either from keyboard event or from user input
                 match usr_input:
@@ -74,20 +102,30 @@ class simple_ytdl:
                     case "m" if allow_m:
                         return "m"
                     case _:
-                        # Handle unrecognized input by displaying a message with valid options (only do it once)
-                        if not unrecog_msg_printed:
+                        if not unrecog_msg_printed and self.fallback_input:
+                            # Handle unrecognized fallback input by displaying a message with valid options (only do it once)
                             unrecog_msg = [
-                                "\nUnrecognized input, options are:",
-                                "Enter/Y",
-                                "Backspace/N",
-                                "Please try again...",
+                                "\nUnrecognized input, fallback options are:",
+                                "Y (Equivalent to Enter)",
+                                "N (Equivalent to Backspace)",
                             ]
                             if allow_m:
-                                unrecog_msg.insert(len(unrecog_msg) - 1, "or M")
-                            print("\n".join(unrecog_msg))
+                                unrecog_msg.append("or M")
+                            print(RED + "\n".join(unrecog_msg) + NC)
                             unrecog_msg_printed = True
                             time.sleep(0.5)
                         continue
+
+    def _url_proc_msg(self) -> None:
+        """URL processing message with a simple animation"""
+        base_msg = f"\r{GREEN}Processing the URL"
+        while True:
+            for frame in [".  ", ".. ", "...", "   "]:
+                if not self.url_processing:
+                    return
+                sys.stdout.write(base_msg + frame)
+                sys.stdout.flush()
+                time.sleep(0.4)
 
     def downloadVideo(self, link: str, vidName: str) -> None:
         """Download the target video
@@ -96,20 +134,25 @@ class simple_ytdl:
             link (str): The URL of the media that you want to download
             vidName (str): The name of the media that you want to download
         """
+        # Download process setup
         self.clear()
         targ_folder = "Videos" if self.isVideo else "Music"
+        progress_template = f"{BLUE}Download Completion: %(progress._percent_str)s || {YELLOW}Time Remaining: %(progress._eta_str)s{NC}"
+        print(f"{GREEN}Downloading: {vidName} to your {targ_folder} folder{NC}")
+
+        # universal yt-dlp arguments (appended to specific args because the URL must be the last yt-dlp argument)
         default_cmd = [
             "--ffmpeg-location",
             self.FFMPEG_PATH,
             "-o",
             os.path.expanduser(f"~/{targ_folder}/%(title)s.%(ext)s"),
+            "--quiet",
+            "--progress",
+            "--progress-template",
+            progress_template,
             link,
         ]
-        # Print the name of the to-be downloaded video and its destination
-        print(f"Downloading: {vidName} to your {targ_folder} folder\n")
-        # Let the user read the printed line before filling the console with status updates
-        time.sleep(1)
-        # Setup media downloading command
+        # extension specific yt-dlp arguments
         if self.isVideo:
             cmd = [
                 "--format",
@@ -124,9 +167,8 @@ class simple_ytdl:
                 "0",
             ]
         # Run the download command
-        # TODO: Capture the command output and display a progress bar-esque message, so the user doesn't have to get exposed to raw command output
         subprocess.run([self.YTDL_PATH] + cmd + default_cmd)
-        finished_input = self.input("\nPress Enter to exit the program, or Backspace to download another video")
+        finished_input = self.input(f"\n{CYAN}Press Enter to exit the program, or Backspace to download another video{NC}")
         if finished_input == "y":
             sys.exit(0)
         else:
@@ -139,15 +181,16 @@ class simple_ytdl:
             link (str): The URL of the media that you want to download
         """
         self.clear()
-        # TODO: Make the processing message have an animated spinner (/,|,\,-)
-        print("Processing the URL...", end="\n\n")
+        self.url_processing: bool = True
+        processing_animation = threading.Thread(target=self._url_proc_msg, daemon=True)
+        processing_animation.start()
         # Process URL to find video name, accounting for errors
         try:
             video_search = subprocess.run([self.YTDL_PATH, "-O", '"%(title)s"', link], capture_output=True, check=True, text=True, timeout=15)
+            self.url_processing: bool = False
         except Exception as e:
-            RED = "\033[0;31m"
-            NO_COLOR = "\033[0m"
-            err_msg = f"{RED}ERROR:{NO_COLOR} "
+            self.url_processing: bool = False
+            err_msg = f"\n\n{RED}ERROR: "
             # Transform common errors to be user-friendly
             match type(e):
                 case subprocess.TimeoutExpired:
@@ -157,21 +200,21 @@ class simple_ytdl:
                 case _:
                     # TODO: logger.traceback(e)
                     # TODO: logger.error(e.stderr)
-                    err_msg += f"Failed to process URL due to {type(e)} exception"
-            error_input = self.input(f"{err_msg}\nPress Enter to re-scan clipboard, or press Backspace to exit")
+                    err_msg += f"Failed to process URL due to {type(e).__name__} exception"
+            error_input = self.input(f"{err_msg}\n{CYAN}Press Enter to exit, or press Backspace to re-scan clipboard{NC}")
             if error_input == "y":
-                return
-            else:
                 sys.exit(1)
+            else:
+                return
         # Display video name and give user some simple options
         videoName = video_search.stdout.strip()
         while True:
             self.clear()
-            print(f"Selected video: {videoName}")
-            print(f"Downloading as an {self.EXT_DICT[self.isVideo]}", end="\n\n")
+            print(f"{GREEN}Selected video: {videoName}{NC}")
+            print(f"{GREEN}Downloading as an {self.EXT_DICT[self.isVideo]}{NC}", end="\n\n")
 
             config_prompt = ["Enter to download", f"M to switch to {self.EXT_DICT[not self.isVideo]}", "Backspace to re-scan clipboard"]
-            user_input = self.input("\n".join(config_prompt), allow_m=True)
+            user_input = self.input(CYAN + "\n".join(config_prompt) + NC, allow_m=True)
             match user_input:
                 case "y":
                     self.downloadVideo(link, videoName)
@@ -186,18 +229,21 @@ class simple_ytdl:
         while True:
             # clear terminal and get clipboard content
             self.clear()
-            print("Checking user clipboard for a URL...", end="\n\n")
+            # TODO: Remove this print statement? Clipboard checks are pretty much instanst
+            print(f"{GREEN}Checking user clipboard for a URL...{NC}", end="\n\n")
             url = pyperclip.paste()
             # valid URL check
             if url.startswith("http"):
                 self.configDownload(url)
             else:
                 # Warn the user if a URL isn't detected and give them the option to continue anyways/retry the download.
-                valid_fail = self.input("Valid URL not found. Press Enter to continue, or Backspace to exit")
+                valid_fail = self.input(f"{RED}Valid URL not found. Press Enter to forcefully continue, or Backspace to re-scan clipboard{NC}")
                 if valid_fail == "y":
                     self.configDownload(url)
                 else:
-                    sys.exit(1)
+                    self.clear()
+                    time.sleep(0.1)
+                    continue
 
 
 if __name__ == "__main__":
