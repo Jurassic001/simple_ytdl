@@ -118,15 +118,14 @@ class simple_ytdl:
 
     def _url_proc_msg(self) -> None:
         """URL processing message with a simple animation"""
-        base_msg = f"{GREEN}Processing the URL..."
-        animation = ["|", "/", "-", "\\"]
+        base_msg = f"\r{GREEN}Processing the URL"
         while True:
-            for frame in animation:
+            for frame in [".  ", ".. ", "...", "   "]:
                 if not self.url_processing:
                     return
-                sys.stdout.write("\r" + base_msg + frame)
+                sys.stdout.write(base_msg + frame)
                 sys.stdout.flush()
-                time.sleep(0.17)
+                time.sleep(0.4)
 
     def downloadVideo(self, link: str, vidName: str) -> None:
         """Download the target video
