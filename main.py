@@ -2,6 +2,7 @@ import argparse
 import os
 import subprocess
 import sys
+import threading
 import time
 from typing import Literal
 
@@ -115,6 +116,18 @@ class simple_ytdl:
                             time.sleep(0.5)
                         continue
 
+    def _url_proc_msg(self) -> None:
+        """URL processing message with a simple animation"""
+        base_msg = f"{GREEN}Processing the URL..."
+        animation = ["|", "/", "-", "\\"]
+        while True:
+            for frame in animation:
+                if not self.url_processing:
+                    return
+                sys.stdout.write("\r" + base_msg + frame)
+                sys.stdout.flush()
+                time.sleep(0.17)
+
     def downloadVideo(self, link: str, vidName: str) -> None:
         """Download the target video
 
@@ -169,13 +182,16 @@ class simple_ytdl:
             link (str): The URL of the media that you want to download
         """
         self.clear()
-        # TODO: Make the processing message have an animated spinner (/,|,\,-)
-        print(f"{GREEN}Processing the URL...{NC}", end="\n\n")
+        self.url_processing: bool = True
+        processing_animation = threading.Thread(target=self._url_proc_msg, daemon=True)
+        processing_animation.start()
         # Process URL to find video name, accounting for errors
         try:
             video_search = subprocess.run([self.YTDL_PATH, "-O", '"%(title)s"', link], capture_output=True, check=True, text=True, timeout=15)
+            self.url_processing: bool = False
         except Exception as e:
-            err_msg = f"{RED}ERROR: "
+            self.url_processing: bool = False
+            err_msg = f"\n\n{RED}ERROR: "
             # Transform common errors to be user-friendly
             match type(e):
                 case subprocess.TimeoutExpired:
