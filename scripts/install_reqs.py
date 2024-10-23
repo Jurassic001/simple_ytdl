@@ -80,6 +80,12 @@ def main(strict: bool) -> None:
         check=strict,
         cwd=ROOT_DIR,
     )
+    # Pull LFS files
+    subprocess.run(
+        ["git", "lfs", "pull"],
+        check=strict,
+        cwd=ROOT_DIR,
+    )
     print_with_sidebars("Requirement installation/setup successful", GREEN)
     sys.exit(0)
 

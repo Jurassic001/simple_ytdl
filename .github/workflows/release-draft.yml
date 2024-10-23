@@ -17,13 +17,15 @@ jobs:
     steps:
     - name: Checkout repository
       uses: actions/checkout@v4
+      with:
+        lfs: "true"
 
     - name: Set up Python
       uses: actions/setup-python@v5
       with:
         python-version: "3.11"
 
-    - name: Install Python Packages
+    - name: Install Dependencies
       run: python scripts/install_reqs.py
 
     - name: Build simple_ytdl.exe
@@ -33,7 +35,7 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         name: simple_ytdl_windows
-        path: ./pyinstaller/dist/simple_ytdl_win32.exe
+        path: ./pyinstaller
 
   # region Build Linux exe
   build-linux:
@@ -43,13 +45,15 @@ jobs:
     steps:
     - name: Checkout repository
       uses: actions/checkout@v4
+      with:
+        lfs: "true"
 
     - name: Set up Python
       uses: actions/setup-python@v5
       with:
         python-version: "3.11"
 
-    - name: Install Python Packages
+    - name: Install Dependencies
       run: python scripts/install_reqs.py
 
     - name: Build simple_ytdl
@@ -59,7 +63,7 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         name: simple_ytdl_linux
-        path: ./pyinstaller/dist/simple_ytdl_linux
+        path: ./pyinstaller
 
   # region Build MacOS exe
   build-macos:
@@ -69,13 +73,15 @@ jobs:
     steps:
     - name: Checkout repository
       uses: actions/checkout@v4
+      with:
+        lfs: "true"
 
     - name: Set up Python
       uses: actions/setup-python@v5
       with:
         python-version: "3.11"
 
-    - name: Install Python Packages
+    - name: Install Dependencies
       run: python scripts/install_reqs.py
 
     - name: Build simple_ytdl
@@ -85,7 +91,7 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         name: simple_ytdl_macos
-        path: ./pyinstaller/dist/simple_ytdl_macos
+        path: ./pyinstaller
 
   # region Create a draft release
   release:
@@ -123,6 +129,6 @@ jobs:
         draft: true
         prerelease: false
         files: |
-          ${{ vars.BUILD_WINDOWS == 'true' && 'simple_ytdl_win32.exe' || '' }}
-          ${{ vars.BUILD_LINUX == 'true' && 'simple_ytdl_linux' || '' }}
-          ${{ vars.BUILD_MACOS == 'true' && 'simple_ytdl_macos' || '' }}
+          ${{ vars.BUILD_WINDOWS == 'true' && 'dist/simple_ytdl_win32.exe' || '' }}
+          ${{ vars.BUILD_LINUX == 'true' && 'dist/simple_ytdl_linux' || '' }}
+          ${{ vars.BUILD_MACOS == 'true' && 'dist/simple_ytdl_macos' || '' }}
