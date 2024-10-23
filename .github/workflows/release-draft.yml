@@ -12,7 +12,7 @@ jobs:
   # region Build Win exe
   build-windows:
     if: ${{ vars.BUILD_WINDOWS == 'true' }}
-    runs-on: windows-2019
+    runs-on: windows-latest
 
     steps:
     - name: Checkout repository
