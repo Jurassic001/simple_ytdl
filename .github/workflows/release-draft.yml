@@ -25,7 +25,7 @@ jobs:
       with:
         python-version: "3.11"
 
-    - name: Install Python Packages
+    - name: Install Dependencies
       run: python scripts/install_reqs.py
 
     - name: Build simple_ytdl.exe
@@ -53,7 +53,7 @@ jobs:
       with:
         python-version: "3.11"
 
-    - name: Install Python Packages
+    - name: Install Dependencies
       run: python scripts/install_reqs.py
 
     - name: Build simple_ytdl
@@ -81,7 +81,7 @@ jobs:
       with:
         python-version: "3.11"
 
-    - name: Install Python Packages
+    - name: Install Dependencies
       run: python scripts/install_reqs.py
 
     - name: Build simple_ytdl
