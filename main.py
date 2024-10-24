@@ -4,10 +4,12 @@ import subprocess
 import sys
 import threading
 import time
+import traceback
 from typing import Literal
 
 import keyboard as kb
 import pyperclip
+from loguru import logger
 
 RED: str = "\033[0;31m"  # Used for error msgs and problem reports
 GREEN: str = "\033[0;32m"  # Used for success/info messages
@@ -20,14 +22,17 @@ BLUE: str = "\033[0;94m"
 
 
 class FallbackInputTrigger(Exception):
-    """Exception to trigger the fallback input method"""
+    """Exception to trigger the fallback input method manually"""
 
-    def __init__(self) -> None:
-        super().__init__("Fallback input triggered due to user input")
+    def __init__(self, key_name: str) -> None:
+        if key_name.isupper():
+            # Convert uppercase keypress names to shift+lowercase key
+            key_name = f"shift+{key_name.lower()}"
+        super().__init__(f'Fallback input method triggered by manual user input ("{key_name}" keypress)')
 
 
 class simple_ytdl:
-    def __init__(self, yes: bool, arg_url: str) -> None:
+    def __init__(self, yes: bool, verbose: bool, arg_url: str) -> None:
         self.EXT_DICT: dict[bool, str] = {
             True: "mp4",
             False: "mp3",
@@ -39,6 +44,7 @@ class simple_ytdl:
         self.FFMPEG_PATH: str = os.path.join(os.path.dirname(__file__), "bin/ffmpeg.exe")  # Path to the ffmpeg executable
 
         self.isVideo: bool = True  # Download format: True - mp4, False - mp3
+        self.verbose: bool = verbose  # Whether or not to enable verbose logging
         self.skip_prompts: bool = yes  # Whether or not to skip input prompts with a value of "y"
         self.fallback_input: Exception | None = None  # None if no fallback input has been triggered, otherwise the exception that triggered it
 
@@ -59,6 +65,17 @@ class simple_ytdl:
         if arg_url != "none":
             pyperclip.copy(arg_url)
 
+        # Logger setup
+        logger.configure(
+            handlers=[
+                {
+                    "sink": sys.stderr,
+                    "level": "TRACE" if self.verbose else "ERROR",
+                    "format": "<r><b>{level}</b></r> on <c>{function}</c>:<c>{line}</c> after <g>{elapsed.seconds} second(s)</g> - <r>{message}</r>",
+                }
+            ]
+        )
+
     def input(self, prompt: str = "", allow_m: bool = False) -> Literal["y", "n", "m"]:
         """Get user input from the keyboard, with traditional input as a fallback
 
@@ -70,7 +87,7 @@ class simple_ytdl:
             str (y, n, m): The user input, transformed to be one of three single-character strings
         """
         if self.skip_prompts:
-            # TODO: logger.debug("Skipping user input with value of 'y'")
+            logger.info("Skipping user input with value of 'y'")
             return "y"
 
         print(prompt)
@@ -84,16 +101,17 @@ class simple_ytdl:
                 usr_input = kb.read_event().name
                 if usr_input == "Q":
                     # triggering the fallback input manually requires shift+q, so it's unlikely to be pressed by accident
-                    raise FallbackInputTrigger
+                    raise FallbackInputTrigger(usr_input)
             except Exception as e:
-                # TODO: logger.traceback(e)
+                logger.trace(traceback.format_exc())
                 if not self.fallback_input:
                     # If the fallback input hasn't been triggered yet, then store the exception that caused it and print a small error message
                     self.fallback_input = e
-                    print(f"\n{RED}Failed to read keyboard events due to {type(e).__name__}{NC}")
+                    logger.error(e)
                 usr_input = input(f"{CYAN}Please type your input: {NC}").strip().lower()[0]
             finally:
                 # Handle input, either from keyboard event or from user input
+                logger.info(f'Raw input is: "{usr_input}"')
                 match usr_input:
                     case "enter" | "y":
                         return "y"
@@ -122,6 +140,7 @@ class simple_ytdl:
         while True:
             for frame in [".  ", ".. ", "...", "   "]:
                 if not self.url_processing:
+                    print()  # Create newline after processing is done
                     return
                 sys.stdout.write(base_msg + frame)
                 sys.stdout.flush()
@@ -146,7 +165,7 @@ class simple_ytdl:
             self.FFMPEG_PATH,
             "-o",
             os.path.expanduser(f"~/{targ_folder}/%(title)s.%(ext)s"),
-            "--quiet",
+            "--verbose" if self.verbose else "--quiet",
             "--progress",
             "--progress-template",
             progress_template,
@@ -167,7 +186,14 @@ class simple_ytdl:
                 "0",
             ]
         # Run the download command
-        subprocess.run([self.YTDL_PATH] + cmd + default_cmd)
+        try:
+            subprocess.run([self.YTDL_PATH] + cmd + default_cmd, stderr=subprocess.PIPE, check=True)
+        except subprocess.CalledProcessError as e:
+            logger.trace(traceback.format_exc())
+            logger.debug(e.stderr)
+            logger.error(f"Download failed with return code {e.returncode}")
+        else:
+            logger.success("Download completed successfully!")
         finished_input = self.input(f"\n{CYAN}Press Enter to exit the program, or Backspace to download another video{NC}")
         if finished_input == "y":
             sys.exit(0)
@@ -182,26 +208,29 @@ class simple_ytdl:
         """
         self.clear()
         self.url_processing: bool = True
+        logger.info("Attempting to find video name using yt-dlp")
         processing_animation = threading.Thread(target=self._url_proc_msg, daemon=True)
         processing_animation.start()
         # Process URL to find video name, accounting for errors
         try:
             video_search = subprocess.run([self.YTDL_PATH, "-O", '"%(title)s"', link], capture_output=True, check=True, text=True, timeout=15)
             self.url_processing: bool = False
+            processing_animation.join()
+            logger.success("Video name found!")
         except Exception as e:
             self.url_processing: bool = False
-            err_msg = f"\n\n{RED}ERROR: "
+            processing_animation.join()
             # Transform common errors to be user-friendly
             match type(e):
                 case subprocess.TimeoutExpired:
-                    err_msg += "Video search timed out"
+                    err_msg = "Video search timed out"
                 case subprocess.CalledProcessError:
-                    err_msg += "Invalid URL or the video cannot be found"
+                    err_msg = "Invalid URL or the video cannot be found"
                 case _:
-                    # TODO: logger.traceback(e)
-                    # TODO: logger.error(e.stderr)
-                    err_msg += f"Failed to process URL due to {type(e).__name__} exception"
-            error_input = self.input(f"{err_msg}\n{CYAN}Press Enter to exit, or press Backspace to re-scan clipboard{NC}")
+                    err_msg = f"Failed to process URL due to {type(e).__name__} exception"
+            logger.trace(traceback.format_exc())
+            logger.error(err_msg)
+            error_input = self.input(f"{CYAN}Press Enter to exit, or press Backspace to re-scan clipboard{NC}")
             if error_input == "y":
                 sys.exit(1)
             else:
@@ -225,12 +254,15 @@ class simple_ytdl:
                 case "n":
                     return
 
+    @logger.catch(
+        level="CRITICAL",
+        message="A critical error has occurred, please copy this output and report this error to https://github.com/Jurassic001/simple_ytdl/issues",
+    )
     def main(self) -> None:
         while True:
             # clear terminal and get clipboard content
             self.clear()
-            # TODO: Remove this print statement? Clipboard checks are pretty much instanst
-            print(f"{GREEN}Checking user clipboard for a URL...{NC}", end="\n\n")
+            logger.info("Checking user clipboard for a URL")
             url = pyperclip.paste()
             # valid URL check
             if url.startswith("http"):
@@ -256,6 +288,13 @@ if __name__ == "__main__":
         help='Pass a string value of "y" on user input prompts',
     )
     parser.add_argument(
+        "--verbose",
+        "-v",
+        action="store_true",
+        default=False,
+        help="Enable verbose logging",
+    )
+    parser.add_argument(
         "--url",
         type=str,
         default="none",
@@ -263,5 +302,5 @@ if __name__ == "__main__":
     )
     args = parser.parse_args()
 
-    download = simple_ytdl(args.yes, args.url)
+    download = simple_ytdl(args.yes, args.verbose, args.url)
     download.main()
