@@ -5,7 +5,7 @@ on:
     types: opened
 
 jobs:
-  label-precommit-prs:
+  label-prs:
     runs-on: ubuntu-latest
 
     steps:
@@ -15,12 +15,14 @@ jobs:
       with:
         github_token: ${{ secrets.GITHUB_TOKEN }}
         labels: dependencies
+
     - name: Label PRs that update Python code
       if: contains(join(github.event.pull_request.changed_files.*.filename, ' '), '.py')
       uses: actions-ecosystem/action-add-labels@v1
       with:
         github_token: ${{ secrets.GITHUB_TOKEN }}
         labels: python
+
     - name: Label PRs that update documentation
       if: contains(join(github.event.pull_request.changed_files.*.filename, ' '), '.md') || github.event.pull_request.changed_files.*.filename == 'LICENSE'
       uses: actions-ecosystem/action-add-labels@v1
